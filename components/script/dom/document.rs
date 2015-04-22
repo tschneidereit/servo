@@ -60,6 +60,7 @@ use dom::mouseevent::MouseEvent;
 use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node};
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
+use dom::stylesheetlist::StyleSheetList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::Range;
 use dom::servohtmlparser::ServoHTMLParser;
@@ -140,6 +141,7 @@ pub struct Document {
     scripts: MutNullableHeap<JS<HTMLCollection>>,
     anchors: MutNullableHeap<JS<HTMLCollection>>,
     applets: MutNullableHeap<JS<HTMLCollection>>,
+    stylesheets_list: MutNullableHeap<JS<StyleSheetList>>,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
     stylesheets: DOMRefCell<Option<Vec<Arc<Stylesheet>>>>,
     /// Whether the list of stylesheets has changed since the last reflow was triggered.
@@ -1335,6 +1337,7 @@ impl Document {
             scripts: Default::default(),
             anchors: Default::default(),
             applets: Default::default(),
+            stylesheets_list: Default::default(),
             stylesheets: DOMRefCell::new(None),
             stylesheets_changed_since_reflow: Cell::new(false),
             ready_state: Cell::new(ready_state),
@@ -1980,6 +1983,13 @@ impl DocumentMethods for Document {
         self.applets.or_init(|| {
             let filter = box AppletsFilter;
             HTMLCollection::create(&self.window, self.upcast(), filter)
+        })
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-document-stylesheets
+    fn StyleSheets(&self) -> Root<StyleSheetList> {
+        self.stylesheets_list.or_init(|| {
+            StyleSheetList::new(self)
         })
     }
 
