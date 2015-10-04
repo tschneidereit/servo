@@ -8,6 +8,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::reflect_dom_object;
 use dom::cssrule::CSSRule;
+use dom::cssrulelist::CSSRuleList;
 use dom::node::Node;
 use dom::stylesheet::StyleSheet;
 use dom::window::Window;
@@ -18,27 +19,32 @@ use util::str::DOMString;
 pub struct CSSStyleSheet {
     stylesheet: StyleSheet,
     owner_rule: Option<JS<CSSRule>>,
+    css_rules: JS<CSSRuleList>,
 }
 
 impl CSSStyleSheet {
     pub fn new_inherited(location: Option<DOMString>,
                          owner_node: Option<&Node>,
                          parent_stylesheet: Option<&StyleSheet>,
-                         owner_rule: Option<&CSSRule>)
+                         owner_rule: Option<&CSSRule>,
+                         css_rules: &CSSRuleList)
                          -> CSSStyleSheet {
         CSSStyleSheet {
             stylesheet: StyleSheet::new_inherited(location, owner_node, parent_stylesheet),
             owner_rule: owner_rule.map(JS::from_ref),
+            css_rules: JS::from_ref(css_rules),
         }
     }
 
     pub fn new(global: &Window, location: Option<DOMString>,
                owner_node: Option<&Node>,
                parent_stylesheet: Option<&StyleSheet>,
-               owner_rule: Option<&CSSRule>)
+               owner_rule: Option<&CSSRule>,
+               css_rules: &CSSRuleList)
                -> Root<CSSStyleSheet> {
         reflect_dom_object(box CSSStyleSheet::new_inherited(location, owner_node,
-                                                            parent_stylesheet, owner_rule),
+                                                            parent_stylesheet,
+                                                            owner_rule, css_rules),
                            GlobalRef::Window(global),
                            CSSStyleSheetBinding::Wrap)
     }
@@ -48,5 +54,10 @@ impl CSSStyleSheetMethods for CSSStyleSheet {
     // https://drafts.csswg.org/cssom/#dom-cssstylesheet-ownerrule
     fn GetOwnerRule(&self) -> Option<Root<CSSRule>> {
         self.owner_rule.as_ref().map(JS::root)
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-cssstylesheet-cssrules
+    fn CssRules(&self) -> Root<CSSRuleList> {
+        self.css_rules.root()
     }
 }
