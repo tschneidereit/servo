@@ -9,6 +9,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
+use util::str::DOMString;
 
 // https://drafts.csswg.org/cssom/#the-cssrule-interface
 #[dom_struct]
@@ -50,6 +51,15 @@ impl CSSRuleMethods for CSSRule {
     // https://drafts.csswg.org/cssom/#dom-cssrule-type
     fn Type(&self) -> u16 {
         self.type_
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-cssrule-csstext
+    fn CssText(&self) -> DOMString {
+      "dummy cssText".to_owned()
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-cssrule-csstext
+    fn SetCssText(&self, value: DOMString) -> () {
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssrule-parentrule
