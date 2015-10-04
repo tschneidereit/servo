@@ -3,10 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::StyleSheetListBinding;
+use dom::bindings::codegen::Bindings::StyleSheetListBinding::StyleSheetListMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::utils::{Reflector, reflect_dom_object};
 use dom::document::Document;
+use dom::node::window_from_node;
 use dom::stylesheet::StyleSheet;
 
 // https://drafts.csswg.org/cssom/#the-stylesheetlist-interface
@@ -14,7 +16,6 @@ use dom::stylesheet::StyleSheet;
 pub struct StyleSheetList {
     reflector_: Reflector,
     owner_doc: JS<Document>,
-    items: Vec<JS<StyleSheet>>,
 }
 
 impl StyleSheetList {
@@ -22,7 +23,6 @@ impl StyleSheetList {
         StyleSheetList {
             reflector_: Reflector::new(),
             owner_doc: JS::from_ref(owner_doc),
-            items: vec![],
         }
     }
 
@@ -32,5 +32,14 @@ impl StyleSheetList {
         reflect_dom_object(box StyleSheetList::new_inherited(owner_doc),
                            GlobalRef::Window(win.r()),
                            StyleSheetListBinding::Wrap)
+    }
+}
+
+impl StyleSheetListMethods for StyleSheetList {
+    // https://drafts.csswg.org/cssom/#dom-stylesheetlist-length
+    fn Length(&self) -> u32 {
+        let doc = self.owner_doc.root();
+        let sheets = doc.r().get_stylesheets();
+        sheets.len() as u32
     }
 }

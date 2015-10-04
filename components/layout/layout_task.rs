@@ -136,6 +136,9 @@ pub struct LayoutTaskData {
     /// A queued response for the resolved style property of an element.
     pub resolved_style_response: Option<String>,
 
+    /// A queued response for the number of stylesheets associated with a document.
+    pub stylesheets_count_response: u32,
+
     /// A queued response for the offset parent/rect of a node.
     pub offset_parent_response: OffsetParentResponse,
 
@@ -416,6 +419,7 @@ impl LayoutTask {
                     content_boxes_response: Vec::new(),
                     client_rect_response: Rect::zero(),
                     resolved_style_response: None,
+                    stylesheets_count_response: 0u32,
                     running_animations: Arc::new(HashMap::new()),
                     offset_parent_response: OffsetParentResponse::empty(),
                     visible_rects: Arc::new(HashMap::with_hash_state(Default::default())),
