@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::CSSMarginRuleBinding;
 use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleConstants;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
-use dom::bindings::utils::reflect_dom_object;
+use dom::bindings::reflector::reflect_dom_object;
 use dom::cssrule::CSSRule;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;

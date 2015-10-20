@@ -44,6 +44,7 @@ pub struct Stylesheet {
     /// List of media associated with the Stylesheet, if any.
     pub media: Option<MediaQueryList>,
     pub origin: Origin,
+    pub url: Url,
 }
 
 
@@ -103,36 +104,40 @@ impl Stylesheet {
     }
 
     pub fn from_str(css: &str, base_url: Url, origin: Origin) -> Stylesheet {
-        let rule_parser = TopLevelRuleParser {
-            context: ParserContext::new(origin, &base_url),
-            state: Cell::new(State::Start),
-        };
-        let mut input = Parser::new(css);
-        let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
-        let mut rules = Vec::new();
-        while let Some(result) = iter.next() {
-            match result {
-                Ok(rule) => {
-                    if let CSSRule::Namespace(ref prefix, ref namespace) = rule {
-                        if let Some(prefix) = prefix.as_ref() {
-                            iter.parser.context.selector_context.namespace_prefixes.insert(
-                                prefix.clone(), namespace.clone());
-                        } else {
-                            iter.parser.context.selector_context.default_namespace =
-                                Some(namespace.clone());
+        let rules = {
+            let rule_parser = TopLevelRuleParser {
+                context: ParserContext::new(origin, &base_url),
+                state: Cell::new(State::Start),
+            };
+            let mut input = Parser::new(css);
+            let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
+            let mut rules = Vec::new();
+            while let Some(result) = iter.next() {
+                match result {
+                    Ok(rule) => {
+                        if let CSSRule::Namespace(ref prefix, ref namespace) = rule {
+                            if let Some(prefix) = prefix.as_ref() {
+                                iter.parser.context.selector_context.namespace_prefixes.insert(
+                                    prefix.clone(), namespace.clone());
+                            } else {
+                                iter.parser.context.selector_context.default_namespace =
+                                    Some(namespace.clone());
+                            }
                         }
+                        rules.push(rule);
                     }
-                    rules.push(rule);
-                }
-                Err(range) => {
-                    let pos = range.start;
-                    let message = format!("Invalid rule: '{}'", iter.input.slice(range));
-                    log_css_error(iter.input, pos, &*message);
+                    Err(range) => {
+                        let pos = range.start;
+                        let message = format!("Invalid rule: '{}'", iter.input.slice(range));
+                        log_css_error(iter.input, pos, &*message);
+                    }
                 }
             }
-        }
+            rules
+        };
         Stylesheet {
             origin: origin,
+            url: base_url,
             rules: rules,
             media: None,
         }

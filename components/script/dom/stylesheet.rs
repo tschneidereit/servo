@@ -2,13 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::StyleSheetBinding;
 use dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
-use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::Reflector;
 use dom::node::Node;
-use dom::window::Window;
 use util::str::DOMString;
 
 use std::borrow::ToOwned;
@@ -36,22 +33,12 @@ impl StyleSheet {
             disabled: false,
         }
     }
-
-    pub fn new(global: &Window, owner_node: Option<&Node>,
-               location: Option<DOMString>,
-               parent_stylesheet: Option<&StyleSheet>)
-               -> Root<StyleSheet> {
-        reflect_dom_object(box StyleSheet::new_inherited(location, owner_node,
-                                                         parent_stylesheet),
-                           GlobalRef::Window(global),
-                           StyleSheetBinding::Wrap)
-    }
 }
 
 impl StyleSheetMethods for StyleSheet {
     // https://drafts.csswg.org/cssom/#dom-stylesheet-type
     fn Type(&self) -> DOMString {
-        "text/css".to_owned()
+        DOMString("text/css".to_owned())
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-href
@@ -61,12 +48,12 @@ impl StyleSheetMethods for StyleSheet {
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode
     fn GetOwnerNode(&self) -> Option<Root<Node>> {
-        self.owner_node.as_ref().map(JS::root)
+        self.owner_node.as_ref().map(|js| Root::from_ref(&**js))
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-parentstylesheet
     fn GetParentStyleSheet(&self) -> Option<Root<StyleSheet>> {
-        self.parent_stylesheet.as_ref().map(JS::root)
+        self.parent_stylesheet.as_ref().map(|js| Root::from_ref(&**js))
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-disabled

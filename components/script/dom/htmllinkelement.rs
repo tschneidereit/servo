@@ -5,7 +5,6 @@
 use cssparser::Parser as CssParser;
 use document_loader::LoadType;
 use dom::attr::{Attr, AttrValue};
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -13,6 +12,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::js::{RootedReference};
 use dom::bindings::refcounted::Trusted;
+use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeMutation, Element, ElementCreator};
@@ -46,7 +46,7 @@ no_jsmanaged_fields!(Stylesheet);
 pub struct HTMLLinkElement {
     htmlelement: HTMLElement,
     rel_list: MutNullableHeap<JS<DOMTokenList>>,
-    stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
+    stylesheet: MutNullableHeap<JS<CSSStyleSheet>>,
 
     /// https://html.spec.whatwg.org/multipage/#a-style-sheet-that-is-blocking-scripts
     parser_inserted: Cell<bool>,
@@ -59,7 +59,7 @@ impl HTMLLinkElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             rel_list: Default::default(),
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
-            stylesheet: DOMRefCell::new(None),
+            stylesheet: Default::default(),
         }
     }
 
@@ -72,8 +72,8 @@ impl HTMLLinkElement {
         Node::reflect_node(box element, document, HTMLLinkElementBinding::Wrap)
     }
 
-    pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
-        self.stylesheet.borrow().clone()
+    pub fn stylesheet(&self) -> Option<Root<CSSStyleSheet>> {
+        self.stylesheet.get()
     }
 }
 
@@ -265,6 +265,7 @@ impl AsyncResponseListener for StylesheetContext {
         let environment_encoding = UTF_8 as EncodingRef;
         let protocol_encoding_label = metadata.charset.as_ref().map(|s| &**s);
         let final_url = metadata.final_url;
+        let href = DOMString(final_url.serialize());
         let mut sheet = Stylesheet::from_bytes(&data, final_url, protocol_encoding_label,
                                                Some(environment_encoding), Origin::Author);
         let media = self.media.take().unwrap();
@@ -276,11 +277,14 @@ impl AsyncResponseListener for StylesheetContext {
         let document = document_from_node(elem);
         let document = document.r();
 
-        let win = window_from_node(elem);
-        let LayoutChan(ref layout_chan) = win.r().layout_chan();
+        let win = document.window();
+        let LayoutChan(ref layout_chan) = win.layout_chan();
         layout_chan.send(Msg::AddStylesheet(sheet.clone())).unwrap();
 
-        *elem.stylesheet.borrow_mut() = Some(sheet);
+        let node = elem.upcast::<Node>();
+        let stylesheet = CSSStyleSheet::new(win, Some(href), Some(node),
+                                            None, None, sheet);
+        elem.stylesheet.set(Some(stylesheet.r()));
         document.invalidate_stylesheets();
         if elem.parser_inserted.get() {
             document.decrement_script_blocking_stylesheet_count();

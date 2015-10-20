@@ -2,26 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{Root, RootedReference};
+use dom::bindings::js::{JS, MutNullableHeap,Root, RootedReference};
+use dom::cssstylesheet::CSSStyleSheet;
 use dom::document::Document;
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use std::ascii::AsciiExt;
+use std::default::Default;
 use std::sync::Arc;
 use style::stylesheets::{CSSRule, Origin, Stylesheet};
 use style::viewport::ViewportRule;
+use url::Url;
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
 
 #[dom_struct]
 pub struct HTMLMetaElement {
     htmlelement: HTMLElement,
-    stylesheet: DOMRefCell<Option<Arc<Stylesheet>>>,
+    stylesheet: MutNullableHeap<JS<CSSStyleSheet>>,
 }
 
 impl HTMLMetaElement {
@@ -30,7 +32,7 @@ impl HTMLMetaElement {
                      document: &Document) -> HTMLMetaElement {
         HTMLMetaElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
-            stylesheet: DOMRefCell::new(None),
+            stylesheet: Default::default(),
         }
     }
 
@@ -42,8 +44,8 @@ impl HTMLMetaElement {
         Node::reflect_node(box element, document, HTMLMetaElementBinding::Wrap)
     }
 
-    pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {
-        self.stylesheet.borrow().clone()
+    pub fn stylesheet(&self) -> Option<Root<CSSStyleSheet>> {
+        self.stylesheet.get()
     }
 
     fn process_attributes(&self) {
@@ -65,12 +67,17 @@ impl HTMLMetaElement {
             let content = content.value();
             if !content.is_empty() {
                 if let Some(translated_rule) = ViewportRule::from_meta(&**content) {
-                    *self.stylesheet.borrow_mut() = Some(Arc::new(Stylesheet {
+                    let sheet = Arc::new(Stylesheet {
                         rules: vec![CSSRule::Viewport(translated_rule)],
                         origin: Origin::Author,
+                        url: Url::parse("viewport").unwrap(),
                         media: None,
-                    }));
+                    });
                     let doc = document_from_node(self);
+                    // Meta elements don't "officially" get a stylesheet, so don't expose the
+                    // node on the stylesheet.
+                    let stylesheet = CSSStyleSheet::new(doc.window(), None, None, None, None, sheet);
+                    self.stylesheet.set(Some(stylesheet.r()));
                     doc.invalidate_stylesheets();
                 }
             }

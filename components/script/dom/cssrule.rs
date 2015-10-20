@@ -6,7 +6,7 @@ use dom::bindings::codegen::Bindings::CSSRuleBinding;
 use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::utils::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use util::str::DOMString;
@@ -55,7 +55,7 @@ impl CSSRuleMethods for CSSRule {
 
     // https://drafts.csswg.org/cssom/#dom-cssrule-csstext
     fn CssText(&self) -> DOMString {
-      "dummy cssText".to_owned()
+      DOMString("dummy cssText".to_owned())
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssrule-csstext
@@ -64,11 +64,11 @@ impl CSSRuleMethods for CSSRule {
 
     // https://drafts.csswg.org/cssom/#dom-cssrule-parentrule
     fn GetParentRule(&self) -> Option<Root<CSSRule>> {
-        self.parent_rule.as_ref().map(JS::root)
+        self.parent_rule.as_ref().map(|js| Root::from_ref(&**js))
     }
 
     // https://drafts.csswg.org/cssom/#dom-cssrule-parentstylesheet
     fn GetParentStyleSheet(&self) -> Option<Root<CSSStyleSheet>> {
-        self.parent_stylesheet.as_ref().map(JS::root)
+        self.parent_stylesheet.as_ref().map(|js| Root::from_ref(&**js))
     }
 }

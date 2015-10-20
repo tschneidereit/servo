@@ -6,8 +6,8 @@
  * https://drafts.csswg.org/cssom/#the-stylesheetlist-interface
  */
 
-// [ArrayClass]
+[ArrayClass]
 interface StyleSheetList {
-  // getter StyleSheet? item(unsigned long index);
+  getter StyleSheet? item(unsigned long index);
   readonly attribute unsigned long length;
 };

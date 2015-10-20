@@ -28,6 +28,7 @@ use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::bindings::xmlname::{validate_and_extract, xml_name_type};
 use dom::comment::Comment;
+use dom::cssstylesheet::CSSStyleSheet;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
@@ -100,10 +101,8 @@ use std::default::Default;
 use std::iter::FromIterator;
 use std::ptr;
 use std::rc::Rc;
-use std::sync::Arc;
 use std::sync::mpsc::channel;
 use string_cache::{Atom, QualName};
-use style::stylesheets::Stylesheet;
 use time;
 use url::Url;
 use util::str::{DOMString, split_html_space_chars, str_join};
@@ -143,7 +142,7 @@ pub struct Document {
     applets: MutNullableHeap<JS<HTMLCollection>>,
     stylesheets_list: MutNullableHeap<JS<StyleSheetList>>,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
-    stylesheets: DOMRefCell<Option<Vec<Arc<Stylesheet>>>>,
+    stylesheets: DOMRefCell<Option<Vec<JS<CSSStyleSheet>>>>,
     /// Whether the list of stylesheets has changed since the last reflow was triggered.
     stylesheets_changed_since_reflow: Cell<bool>,
     ready_state: Cell<DocumentReadyState>,
@@ -1406,25 +1405,24 @@ impl Document {
     }
 
     /// Returns the list of stylesheets associated with nodes in the document.
-    pub fn stylesheets(&self) -> Ref<Vec<Arc<Stylesheet>>> {
+    pub fn stylesheets(&self) -> Ref<Vec<JS<CSSStyleSheet>>> {
         {
             let mut stylesheets = self.stylesheets.borrow_mut();
             if stylesheets.is_none() {
-                let new_stylesheets: Vec<Arc<Stylesheet>> = self.upcast::<Node>()
+                *stylesheets = Some(self.upcast::<Node>()
                     .traverse_preorder()
                     .filter_map(|node| {
                         if let Some(node) = node.downcast::<HTMLStyleElement>() {
-                            node.get_stylesheet()
+                            node.stylesheet().map(|ref s| JS::from_rooted(s))
                         } else if let Some(node) = node.downcast::<HTMLLinkElement>() {
-                            node.get_stylesheet()
+                            node.stylesheet().map(|ref s| JS::from_rooted(s))
                         } else if let Some(node) = node.downcast::<HTMLMetaElement>() {
-                            node.get_stylesheet()
+                            node.stylesheet().map(|ref s| JS::from_rooted(s))
                         } else {
                             None
                         }
                     })
-                    .collect();
-                *stylesheets = Some(new_stylesheets);
+                    .collect());
             };
         }
         Ref::map(self.stylesheets.borrow(), |t| t.as_ref().unwrap())
