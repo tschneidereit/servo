@@ -6,6 +6,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CSSStyleSheetBinding;
 use dom::bindings::codegen::Bindings::CSSStyleSheetBinding::CSSStyleSheetMethods;
 use dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
+use dom::bindings::error::{Fallible, Error, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::reflect_dom_object;
@@ -82,5 +83,17 @@ impl CSSStyleSheetMethods for CSSStyleSheet {
         self.rule_list.or_init(|| {
             CSSRuleList::new(&*self.window())
         })
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-cssstylesheet-insertrule
+    fn InsertRule(&self, rule: DOMString, index: u32) -> Fallible<u32> {
+        let result = Arc::get_mut(&mut *self.style.borrow_mut()).unwrap().insert_rule(&rule, index);
+        Ok(index)
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-cssstylesheet-deleterule
+    fn DeleteRule(&self, index: u32) -> Fallible<()> {
+        Arc::get_mut(&mut *self.style.borrow_mut()).unwrap().delete_rule(index);
+        Ok(())
     }
 }

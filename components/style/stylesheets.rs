@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::{AtRuleParser, Parser, QualifiedRuleParser, decode_stylesheet_bytes};
-use cssparser::{AtRuleType, RuleListParser};
+use cssparser::{AtRuleType, RuleListParser, parse_one_rule};
 use encoding::EncodingRef;
 use font_face::{FontFaceRule, parse_font_face_block};
 use media_queries::{Device, MediaQueryList, parse_media_query_list};
@@ -174,6 +174,39 @@ impl Stylesheet {
     #[inline]
     pub fn effective_rules<'a>(&'a self, device: &'a Device) -> Rules<'a> {
         Rules::new(self.rules.iter(), Some(device))
+    }
+
+    /// https://drafts.csswg.org/cssom/#insert-a-css-rule
+    pub fn insert_rule(&mut self, rule_src: &str, index: u32) -> Result<u32, ()> {
+        // Step 1.
+        let mut rule_parser = TopLevelRuleParser {
+            context: ParserContext::new(self.origin, &self.url),
+            state: Cell::new(State::Start),
+        };
+        let mut input = Parser::new(rule_src);
+        let rule = parse_one_rule(&mut input, &mut rule_parser);
+        // Step 2.
+        if let Err(()) = rule {
+            return Err(());
+        }
+        // Step 3.
+        let length = self.rules.len();
+        // Step 4.
+        if index as usize > length {
+            return Err(());
+        }
+        // Step 5.
+        // TODO: implement.
+        // Step 6.
+        // TODO: implement.
+        // Step 7.
+        self.rules.insert(index as usize, rule.unwrap());
+        Ok(index)
+    }
+
+    /// https://drafts.csswg.org/cssom/#remove-a-css-rule
+    pub fn delete_rule(&mut self, index: u32) {
+        self.rules.remove(index as usize);
     }
 }
 
